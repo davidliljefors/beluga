@@ -16,4 +16,4 @@ file(GLOB SRC_FILES src/*.cpp)
 
 # Add the executable and link source files
 add_executable(beluga ${SRC_FILES})
-target_link_libraries(beluga PRIVATE d3d12.lib dxgi.lib)
+target_link_libraries(beluga PRIVATE d3d12.lib dxgi.lib d3dcompiler.lib)

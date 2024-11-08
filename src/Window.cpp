@@ -5,22 +5,26 @@
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 {
+    Window* window = reinterpret_cast<Window*>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
+    
     switch (msg)
     {
+    case WM_CREATE:
+    {
+        CREATESTRUCT* create = reinterpret_cast<CREATESTRUCT*>(lparam);
+        SetWindowLongPtr(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(create->lpCreateParams));
+        return 0;
+    }
+    case WM_SIZE:
+        if (window && window->get_dx11_core())
+        {
+            UINT width = LOWORD(lparam);
+            UINT height = HIWORD(lparam);
+            window->get_dx11_core()->resize(width, height);
+        }
+        return 0;
     case WM_DESTROY:
         PostQuitMessage(0);
-        return 0;
-
-    case WM_PAINT:
-        {
-            PAINTSTRUCT ps;
-            HDC hdc = BeginPaint(hwnd, &ps);
-            // Create a black brush and fill the window with it
-            HBRUSH blackBrush = CreateSolidBrush(RGB(0, 0, 0));
-            FillRect(hdc, &ps.rcPaint, blackBrush);
-            DeleteObject(blackBrush);  // Clean up the brush
-            EndPaint(hwnd, &ps);
-        }
         return 0;
     }
     return DefWindowProc(hwnd, msg, wparam, lparam);
@@ -30,6 +34,7 @@ Window::Window(int width, int height, const char* title)
     : m_width(width)
     , m_height(height)
     , m_title(title)
+    , m_p_dx11_core(nullptr)
 {
     // Register window class
     WNDCLASSEX wc = {};
@@ -61,14 +66,18 @@ Window::Window(int width, int height, const char* title)
     );
 
     ShowWindow((HWND)m_hwnd, SW_SHOW);
+
+    // Create DX11 core after window creation
+    m_p_dx11_core = new D3D11Core(m_hwnd, width, height);
 }
 
 Window::~Window()
 {
+    delete m_p_dx11_core;
     if (m_hwnd) DestroyWindow((HWND)m_hwnd);
 }
 
-bool Window::ProcessMessages()
+bool Window::process_messages()
 {
     MSG msg = {};
     while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
@@ -80,5 +89,11 @@ bool Window::ProcessMessages()
         DispatchMessage(&msg);
     }
     return true;
+}
+
+void Window::present()
+{
+    // Present the frame
+    m_p_dx11_core->Present();
 }
 

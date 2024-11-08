@@ -1,0 +1,16 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Launch Program with VS Debugger",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/beluga.exe",  // Path to your executable
+            "args": [],  // Arguments to pass to the program
+            "cwd": "${workspaceFolder}",  // Working directory
+            "symbolSearchPath": "${workspaceFolder}",  // Path to PDB file directory
+            "console": "integratedTerminal",
+            "stopAtEntry": false
+        }
+    ]
+}
