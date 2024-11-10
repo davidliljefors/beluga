@@ -25,8 +25,11 @@ void Camera::look_at(const Vec3& target) {
     update_view_matrix();
 }
 
-void Camera::set_perspective(f32 fov_degrees, f32 aspect_ratio, 
-                           f32 near_plane, f32 far_plane) 
+void Camera::set_perspective(
+    f32 fov_degrees, 
+    f32 aspect_ratio,
+	f32 near_plane, 
+    f32 far_plane)
 {
     m_fov = fov_degrees;
     m_aspect_ratio = aspect_ratio;
@@ -41,10 +44,10 @@ void Camera::update_view_matrix() {
     
     // Create view matrix (simplified look-at matrix calculation)
     m_view_matrix = Mat4x4(
-        right.x,           up.x,           m_forward.x,     0.0f,
-        right.y,           up.y,           m_forward.y,     0.0f,
-        right.z,           up.z,           m_forward.z,     0.0f,
-        -dot(right, m_position), -dot(up, m_position), -dot(m_forward, m_position), 1.0f
+        right.x,           right.y,           right.z,     -dot(right, m_position),
+        up.x,              up.y,              up.z,        -dot(up, m_position),
+        m_forward.x,       m_forward.y,       m_forward.z, -dot(m_forward, m_position),
+        0.0f,              0.0f,              0.0f,        1.0f
     );
 }
 
@@ -52,10 +55,10 @@ void Camera::update_projection_matrix() {
     f32 tan_half_fov = tan(m_fov * 0.5f * 3.14159f / 180.0f);
     f32 f = 1.0f / tan_half_fov;
     
-    m_projection_matrix = Mat4x4(
-        f / m_aspect_ratio, 0.0f, 0.0f, 0.0f,
-        0.0f, f, 0.0f, 0.0f,
-        0.0f, 0.0f, (m_far + m_near) / (m_near - m_far), -1.0f,
-        0.0f, 0.0f, (2.0f * m_far * m_near) / (m_near - m_far), 0.0f
-    );
+	m_projection_matrix = Mat4x4(
+		f / m_aspect_ratio, 0.0f, 0.0f, 0.0f,
+		0.0f, f, 0.0f, 0.0f,
+		0.0f, 0.0f, (m_far + m_near) / (m_near - m_far), (2.0f * m_far * m_near) / (m_near - m_far),
+		0.0f, 0.0f, -1.0f, 0.0f
+	);
 } 

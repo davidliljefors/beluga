@@ -1,6 +1,7 @@
 # Build directories
 build/
 Build/ 
+sln/ 
 
 #clangd cache
 .cache/ 

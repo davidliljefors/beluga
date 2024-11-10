@@ -15,8 +15,8 @@ private:
     bool create_vertex_buffer(ID3D11Device* pDevice);
     bool create_shaders(ID3D11Device* pDevice);
 
-    ID3D11Buffer* m_pVertex_buffer;
-    ID3D11VertexShader* m_pVertex_shader;
-    ID3D11PixelShader* m_pPixel_shader;
-    ID3D11InputLayout* m_pInput_layout;
+    ID3D11Buffer* m_pVertexBuffer;
+    ID3D11VertexShader* m_pVertexShader;
+    ID3D11PixelShader* m_pPixelShader;
+    ID3D11InputLayout* m_pInputLayout;
 }; 

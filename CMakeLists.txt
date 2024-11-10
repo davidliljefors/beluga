@@ -11,8 +11,10 @@ add_subdirectory(dependencies/EASTL)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Gather all .cpp files in the src directory
-file(GLOB SRC_FILES src/*.cpp)
+file(GLOB_RECURSE SRC_FILES 
+    "src/*.cpp"
+    "src/*.h"
+)
 
 # Add the executable and link source files
 add_executable(beluga ${SRC_FILES})

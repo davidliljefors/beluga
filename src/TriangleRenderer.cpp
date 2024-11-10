@@ -3,16 +3,20 @@
 #include <d3d11.h>
 #include <d3dcompiler.h>
 
+#include "dx11.h"
+
 #include "Vec3.h"
 #include "Vec4.h"
 
-struct Vertex {
-    Vec3 position;
-    Vec4 color;
-};  
+struct Vertex
+{
+	Vec3 position;
+	Vec4 color;
+};
 
-namespace {
-    const char* k_vertex_shader = R"(
+namespace
+{
+const char* kVertexShader = R"(
         struct VS_INPUT {
             float3 Position : POSITION;
             float4 Color : COLOR;
@@ -27,11 +31,12 @@ namespace {
             VS_OUTPUT output;
             output.Position = float4(input.Position, 1.0f);
             output.Color = input.Color;
+			output.Color.r = 0.8f;
             return output;
         }
     )";
 
-    const char* k_pixel_shader = R"(
+const char* kPixelShader = R"(
         struct PS_INPUT {
             float4 Position : SV_POSITION;
             float4 Color : COLOR;
@@ -44,115 +49,143 @@ namespace {
 }
 
 TriangleRenderer::TriangleRenderer()
-    : m_pVertex_buffer(nullptr)
-    , m_pVertex_shader(nullptr)
-    , m_pPixel_shader(nullptr)
-    , m_pInput_layout(nullptr)
+	: m_pVertexBuffer(nullptr)
+	, m_pVertexShader(nullptr)
+	, m_pPixelShader(nullptr)
+	, m_pInputLayout(nullptr)
 {
 }
 
-TriangleRenderer::~TriangleRenderer() {
-    shutdown();
+TriangleRenderer::~TriangleRenderer()
+{
+	shutdown();
 }
 
-bool TriangleRenderer::initialize(ID3D11Device* p_device) {
-    if (!create_vertex_buffer(p_device)) return false;
-    if (!create_shaders(p_device)) return false;
-    return true;
+bool TriangleRenderer::initialize(ID3D11Device* pDevice)
+{
+	if (!create_vertex_buffer(pDevice)) return false;
+	if (!create_shaders(pDevice)) return false;
+	return true;
 }
 
-void TriangleRenderer::render(ID3D11DeviceContext* p_context) {
-    // Set the vertex buffer
-    u32 stride = sizeof(Vertex);
-    u32 offset = 0;
-    p_context->IASetVertexBuffers(0, 1, &m_pVertex_buffer, &stride, &offset);
-    p_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-    p_context->IASetInputLayout(m_pInput_layout);
+void TriangleRenderer::render(ID3D11DeviceContext* pContext)
+{
+	u32 stride = sizeof(Vertex);
+	u32 offset = 0;
+	pContext->IASetInputLayout(m_pInputLayout);
 
-    // Set the shaders
-    p_context->VSSetShader(m_pVertex_shader, nullptr, 0);
-    p_context->PSSetShader(m_pPixel_shader, nullptr, 0);
+	pContext->VSSetShader(m_pVertexShader, nullptr, 0);
+	pContext->PSSetShader(m_pPixelShader, nullptr, 0);
 
-    // Draw the triangle
-    p_context->Draw(3, 0);
+	pContext->IASetVertexBuffers(0, 1, &m_pVertexBuffer, &stride, &offset);
+	pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+	pContext->Draw(3, 0);
 }
 
-void TriangleRenderer::shutdown() {
-    if (m_pVertex_buffer) m_pVertex_buffer->Release();
-    if (m_pVertex_shader) m_pVertex_shader->Release();
-    if (m_pPixel_shader) m_pPixel_shader->Release();
-    if (m_pInput_layout) m_pInput_layout->Release();
+void TriangleRenderer::shutdown()
+{
+	if (m_pVertexBuffer) m_pVertexBuffer->Release();
+	if (m_pVertexShader) m_pVertexShader->Release();
+	if (m_pPixelShader) m_pPixelShader->Release();
+	if (m_pInputLayout) m_pInputLayout->Release();
 
-    m_pVertex_buffer = nullptr;
-    m_pVertex_shader = nullptr;
-    m_pPixel_shader = nullptr;
-    m_pInput_layout = nullptr;
+	m_pVertexBuffer = nullptr;
+	m_pVertexShader = nullptr;
+	m_pPixelShader = nullptr;
+	m_pInputLayout = nullptr;
 }
 
-bool TriangleRenderer::create_vertex_buffer(ID3D11Device* pDevice) {
-    // Define the triangle vertices (centered at 0,0)
-    Vertex vertices[] = {
-        { Vec3( 0.0f,  0.5f, 0.0f), Vec4(1.0f, 0.0f, 0.0f, 1.0f) },  // Top (red)
-        { Vec3(-0.5f, -0.5f, 0.0f), Vec4(0.0f, 1.0f, 0.0f, 1.0f) },  // Bottom left (green)
-        { Vec3( 0.5f, -0.5f, 0.0f), Vec4(0.0f, 0.0f, 1.0f, 1.0f) }   // Bottom right (blue)
-    };
+bool TriangleRenderer::create_vertex_buffer(ID3D11Device* pDevice)
+{
+// Define the triangle vertices (centered at 0,0)
+	Vertex vertices[] = {
+		{ Vec3(0.5f, -0.5f, 0.5f),	Vec4(0.0f, 0.0f, 1.0f, 1.0f) },  // Bottom right (blue)
+		{ Vec3(-0.5f, -0.5f, 0.5f), Vec4(0.0f, 1.0f, 0.0f, 1.0f) },  // Bottom left (green)
+		{ Vec3(0.0f,  0.5f, 0.5f),	Vec4(1.0f, 0.0f, 0.0f, 1.0f) },  // Top (red)
+	};
 
-    D3D11_BUFFER_DESC bd = {};
-    bd.Usage = D3D11_USAGE_DEFAULT;
-    bd.ByteWidth = sizeof(vertices);
-    bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	D3D11_BUFFER_DESC bd = {};
+	bd.Usage = D3D11_USAGE_DEFAULT;
+	bd.ByteWidth = sizeof(vertices);
+	bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 
-    D3D11_SUBRESOURCE_DATA init_data = {};
-    init_data.pSysMem = vertices;
+	D3D11_SUBRESOURCE_DATA init_data = {};
+	init_data.pSysMem = vertices;
 
-    HRESULT hr = pDevice->CreateBuffer(&bd, &init_data, &m_pVertex_buffer);
-    return SUCCEEDED(hr);
+	CHECK_DX(pDevice->CreateBuffer, &bd, &init_data, &m_pVertexBuffer);
+	return true;
 }
 
-bool TriangleRenderer::create_shaders(ID3D11Device* pDevice) {
-    // Compile vertex shader
-    ID3DBlob* p_vs_blob = nullptr;
-    ID3DBlob* p_error_blob = nullptr;
-    HRESULT hr = D3DCompile(k_vertex_shader, strlen(k_vertex_shader), nullptr, nullptr, nullptr,
-                           "main", "vs_4_0", 0, 0, &p_vs_blob, &p_error_blob);
-    if (FAILED(hr)) {
-        if (p_error_blob) p_error_blob->Release();
-        return false;
-    }
+bool TriangleRenderer::create_shaders(ID3D11Device* pDevice)
+{
+	ID3DBlob* pVsBlob = nullptr;
+	ID3DBlob* pErrorBlob = nullptr;
 
-    hr = pDevice->CreateVertexShader(p_vs_blob->GetBufferPointer(), 
-                                     p_vs_blob->GetBufferSize(), 
-                                     nullptr, &m_pVertex_shader);
-    if (FAILED(hr)) {
-        p_vs_blob->Release();
-        return false;
-    }
+	UINT compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
 
-    // Create input layout
-    D3D11_INPUT_ELEMENT_DESC layout[] = {
-        { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, 
-          D3D11_INPUT_PER_VERTEX_DATA, 0 },
-        { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, 
-          D3D11_INPUT_PER_VERTEX_DATA, 0 }
-    };
+	CHECK_DX(D3DCompile,
+		kVertexShader,
+		strlen(kVertexShader),
+		nullptr,
+		nullptr,
+		nullptr,
+		"main",
+		"vs_5_0",
+		compileFlags,
+		0,
+		&pVsBlob,
+		&pErrorBlob
+	);
 
-    hr = pDevice->CreateInputLayout(layout, 2, p_vs_blob->GetBufferPointer(),
-                                   p_vs_blob->GetBufferSize(), &m_pInput_layout);
-    p_vs_blob->Release();
-    if (FAILED(hr)) return false;
+	if (pErrorBlob)
+		pErrorBlob->Release();
 
-    // Compile pixel shader
-    ID3DBlob* p_ps_blob = nullptr;
-    hr = D3DCompile(k_pixel_shader, strlen(k_pixel_shader), nullptr, nullptr, nullptr,
-                    "main", "ps_4_0", 0, 0, &p_ps_blob, &p_error_blob);
-    if (FAILED(hr)) {
-        if (p_error_blob) p_error_blob->Release();
-        return false;
-    }
+	CHECK_DX(pDevice->CreateVertexShader,
+		pVsBlob->GetBufferPointer(),
+		pVsBlob->GetBufferSize(),
+		nullptr, &m_pVertexShader);
 
-    hr = pDevice->CreatePixelShader(p_ps_blob->GetBufferPointer(),
-                                    p_ps_blob->GetBufferSize(),
-                                    nullptr, &m_pPixel_shader);
-    p_ps_blob->Release();
-    return SUCCEEDED(hr);
-} 
+	D3D11_INPUT_ELEMENT_DESC layout[] = {
+		{ 
+			"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0,
+		  D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12,
+		  D3D11_INPUT_PER_VERTEX_DATA, 0 }
+	};
+
+	CHECK_DX(pDevice->CreateInputLayout,
+		layout,
+		2,
+		pVsBlob->GetBufferPointer(),
+		pVsBlob->GetBufferSize(),
+		&m_pInputLayout);
+
+	pVsBlob->Release();
+
+	ID3DBlob* pPsBlob = nullptr;
+	CHECK_DX(D3DCompile,
+		kPixelShader,
+		strlen(kPixelShader),
+		nullptr,
+		nullptr,
+		nullptr,
+		"main",
+		"ps_5_0",
+		D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION,
+		0,
+		&pPsBlob,
+		&pErrorBlob);
+
+	if (pErrorBlob)
+		pErrorBlob->Release();
+
+	CHECK_DX(pDevice->CreatePixelShader,
+		pPsBlob->GetBufferPointer(),
+		pPsBlob->GetBufferSize(),
+		nullptr, &m_pPixelShader);
+
+	pPsBlob->Release();
+
+	return true;
+}

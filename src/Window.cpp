@@ -34,7 +34,7 @@ Window::Window(int width, int height, const char* title)
     : m_width(width)
     , m_height(height)
     , m_title(title)
-    , m_p_dx11_core(nullptr)
+    , m_pDx11Core(nullptr)
 {
     // Register window class
     WNDCLASSEX wc = {};
@@ -68,12 +68,12 @@ Window::Window(int width, int height, const char* title)
     ShowWindow((HWND)m_hwnd, SW_SHOW);
 
     // Create DX11 core after window creation
-    m_p_dx11_core = new D3D11Core(m_hwnd, width, height);
+    m_pDx11Core = new D3D11Core(m_hwnd, width, height);
 }
 
 Window::~Window()
 {
-    delete m_p_dx11_core;
+    delete m_pDx11Core;
     if (m_hwnd) DestroyWindow((HWND)m_hwnd);
 }
 
@@ -94,6 +94,6 @@ bool Window::process_messages()
 void Window::present()
 {
     // Present the frame
-    m_p_dx11_core->Present();
+    m_pDx11Core->render_frame();
 }
 

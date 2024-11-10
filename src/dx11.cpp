@@ -1,116 +1,157 @@
 #include "dx11.h"
+#include "Camera.h"
 #include "TriangleRenderer.h"
 
 #include <stdexcept>
 #include <d3d11.h>
-#include <dxgi.h>
-#include <dxgi.h>
+#include <dxgi1_6.h>
 
 #pragma comment(lib, "d3d11.lib")
 #pragma comment(lib, "dxgi.lib")
 
-D3D11Core::D3D11Core(void* hwnd, int width, int height) {
-    // Create DXGI Factory
-    if (FAILED(CreateDXGIFactory(__uuidof(IDXGIFactory), (void**)&m_factory))) {
-        throw std::runtime_error("Failed to create DXGI factory");
-    }
+D3D11Core::D3D11Core(void* hwnd, int width, int height) 
+{
+    HRESULT hr = CreateDXGIFactory2(0, __uuidof(IDXGIFactory), (void**)&m_pFactory);
+    check_dx_error(hr, "CreateDXGIFactory");
 
-    // Create Device
-    if (FAILED(D3D11CreateDevice(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, 0, nullptr, 0, D3D11_SDK_VERSION, &m_device, nullptr, &m_deviceContext))) {
-        throw std::runtime_error("Failed to create D3D11 device");
-    }   
+    CHECK_DX(D3D11CreateDevice,
+        nullptr, 
+        D3D_DRIVER_TYPE_HARDWARE, 
+        nullptr, 
+        D3D11_CREATE_DEVICE_DEBUG, 
+        nullptr, 
+        0, 
+        D3D11_SDK_VERSION, 
+        &m_pDevice, 
+        nullptr, 
+        &m_pDeviceContext
+    );
+
+#ifdef _DEBUG
+    ID3D11Debug* pDebug = nullptr;
+    ID3D11InfoQueue* pInfoQueue = nullptr;
+
+    CHECK_DX(m_pDevice->QueryInterface, __uuidof(ID3D11Debug), (void**)&pDebug);
+    CHECK_DX(pDebug->QueryInterface, __uuidof(ID3D11InfoQueue), (void**)&pInfoQueue);
+    CHECK_DX(pInfoQueue->SetBreakOnSeverity, D3D11_MESSAGE_SEVERITY_CORRUPTION, true);
+    CHECK_DX(pInfoQueue->SetBreakOnSeverity, D3D11_MESSAGE_SEVERITY_ERROR, true);
+    CHECK_DX(pInfoQueue->SetBreakOnSeverity, D3D11_MESSAGE_SEVERITY_WARNING, true);
+    
+    pInfoQueue->Release();
+    pDebug->Release();
+    puts("D3D11 debug layer enabled successfully");
+	
+#endif
     
     // Create swap chain
-    DXGI_SWAP_CHAIN_DESC swap_chain_desc = {};
-    swap_chain_desc.BufferCount = BUFFER_COUNT;
-    swap_chain_desc.BufferDesc.Width = width;
-    swap_chain_desc.BufferDesc.Height = height;
-    swap_chain_desc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-    swap_chain_desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-    swap_chain_desc.OutputWindow = (HWND)hwnd;
-    swap_chain_desc.SampleDesc.Count = 1;
-    swap_chain_desc.Windowed = TRUE;
+    DXGI_SWAP_CHAIN_DESC swapChainDesc = {};
+	swapChainDesc.BufferCount = 2;
+	swapChainDesc.BufferDesc.Width = width;
+	swapChainDesc.BufferDesc.Height = height;
+	swapChainDesc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	swapChainDesc.BufferDesc.RefreshRate = {144, 1};
+	swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+	swapChainDesc.OutputWindow = (HWND)hwnd;
+	swapChainDesc.SampleDesc.Count = 1;
+	swapChainDesc.Windowed = TRUE;
+	swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
 
-    m_factory->CreateSwapChain(m_device, &swap_chain_desc, &m_swapChain);
+    CHECK_DX(m_pFactory->CreateSwapChain, m_pDevice, &swapChainDesc, &m_pSwapChain);
 
-    // Create render target view
-    ID3D11Texture2D* p_back_buffer;
-    m_swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&p_back_buffer);
-    m_device->CreateRenderTargetView(p_back_buffer, nullptr, &m_p_render_target_view);
-    p_back_buffer->Release();
+	resize(width, height);
+
+    m_pCamera = new Camera();
 }
 
 D3D11Core::~D3D11Core() {
-    if (m_deviceContext) m_deviceContext->Release();
-    if (m_swapChain) m_swapChain->Release();
-    if (m_device) m_device->Release();
-    if (m_factory) m_factory->Release();
-    if (m_p_render_target_view) m_p_render_target_view->Release();
+    if (m_pDeviceContext) m_pDeviceContext->Release();
+    if (m_pSwapChain) m_pSwapChain->Release();
+    if (m_pDevice) m_pDevice->Release();
+    if (m_pFactory) m_pFactory->Release();
+    if (m_pRenderTargetView) m_pRenderTargetView->Release();
 }
 
-void D3D11Core::Present() {
-    m_deviceContext->ClearRenderTargetView(m_p_render_target_view, m_clear_color);
+void D3D11Core::render_frame()
+{
+    m_pDeviceContext->ClearRenderTargetView(m_pRenderTargetView, m_clearColor);
 
-    // Set the render target before drawing
-    m_deviceContext->OMSetRenderTargets(1, &m_p_render_target_view, nullptr);
+    m_pDeviceContext->OMSetRenderTargets(1, &m_pRenderTargetView, nullptr);
 
-    if(m_pTriangleRenderer)
-        m_pTriangleRenderer->render(m_deviceContext);
+    m_pTriangleRenderer->render(m_pDeviceContext);
 
-    m_swapChain->Present(1, 0);
+    CHECK_DX(m_pSwapChain->Present, 2, 0);
 }
 
 void D3D11Core::resize(u32 width, u32 height)
 {
-    if (!m_swapChain) return;
+    if (!m_pSwapChain) return;
 
     printf("Resizing DX11 Core to %u x %u\n", width, height);
 
     // Release render target
-    if (m_p_render_target_view) {
-        m_p_render_target_view->Release();
-        m_p_render_target_view = nullptr;
+    if (m_pRenderTargetView) {
+        m_pRenderTargetView->Release();
+        m_pRenderTargetView = nullptr;
     }
 
     // Resize swap chain buffers
-    HRESULT hr = m_swapChain->ResizeBuffers(BUFFER_COUNT, width, height, DXGI_FORMAT_R8G8B8A8_UNORM, 0);
-    if (FAILED(hr)) {
-        printf("Failed to resize swap chain buffers! HRESULT: 0x%lx\n", hr);
-        return;
-    }
+    CHECK_DX(m_pSwapChain->ResizeBuffers, BUFFER_COUNT, width, height, DXGI_FORMAT_R8G8B8A8_UNORM, 0);
 
     // Recreate render target view
     create_render_target_view();
 
     // Update viewport
     D3D11_VIEWPORT viewport = {};
+    viewport.TopLeftX = 0.0f;
+	viewport.TopLeftY = 0.0f;
     viewport.Width = (float)width;
     viewport.Height = (float)height;
     viewport.MinDepth = 0.0f;
     viewport.MaxDepth = 1.0f;
-    m_deviceContext->RSSetViewports(1, &viewport);
+    m_pDeviceContext->RSSetViewports(1, &viewport);
 }
 
-void D3D11Core::create_triangle_renderer() {
-    auto tri  = (TriangleRenderer*)malloc(sizeof(TriangleRenderer));
-
-    tri->initialize(m_device);
-
-    if(!m_pTriangleRenderer->initialize(m_device))
-        throw std::runtime_error("Failed to initialize TriangleRenderer");
+void D3D11Core::create_triangle_renderer() 
+{
+  m_pTriangleRenderer = new TriangleRenderer();
+  m_pTriangleRenderer->initialize(m_pDevice);
 }
 
 void D3D11Core::create_render_target_view()
 {
-    // Release old view if it exists
-    if (m_p_render_target_view) {
-        m_p_render_target_view->Release();
-        m_p_render_target_view = nullptr;
+    if (m_pRenderTargetView) {
+        m_pRenderTargetView->Release();
+        m_pRenderTargetView = nullptr;
     }
 
-    // Create new render target view
-    ID3D11Texture2D* p_back_buffer;
-    m_swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&p_back_buffer);
-    m_device->CreateRenderTargetView(p_back_buffer, nullptr, &m_p_render_target_view);
-    p_back_buffer->Release();
+    ID3D11Texture2D* pBackBuffer;
+    CHECK_DX(m_pSwapChain->GetBuffer, 0, __uuidof(ID3D11Texture2D), (void**)&pBackBuffer);
+
+    CHECK_DX(m_pDevice->CreateRenderTargetView, pBackBuffer, nullptr, &m_pRenderTargetView);
+
+	pBackBuffer->Release();
+}
+
+bool D3D11Core::check_dx_error(HRESULT hr, const char* operation)
+{
+    if (FAILED(hr))
+    {
+        // Get error message
+        char error_msg[256];
+        FormatMessageA(
+            FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+            nullptr,
+            hr,
+            MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+            error_msg,
+            sizeof(error_msg),
+            nullptr
+        );
+
+        printf("DX Error in %s: (0x%08lX) %s\n", operation, hr, error_msg);
+
+        throw "DX Error";
+        return true;
+    }
+    return false;
 }

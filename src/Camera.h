@@ -6,7 +6,7 @@
 
 class Camera {
 public:
-    Camera(f32 fov_degrees = 60.0f, f32 aspect_ratio = 16.0f/9.0f, 
+    Camera(f32 fov_degrees = 75.0f, f32 aspect_ratio = 16.0f/9.0f, 
            f32 near_plane = 0.1f, f32 far_plane = 1000.0f);
 
     void set_position(const Vec3& position);
