@@ -1,36 +1,46 @@
-#include "Window.h"
+#include "App.h"
+
+#include "Input.h"
+
+#include "dx11.h"
+
+#include <cstdio>
 
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 {
-    Window* window = reinterpret_cast<Window*>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
+    App* pWindow = reinterpret_cast<App*>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
     
     switch (msg)
     {
     case WM_CREATE:
     {
-        CREATESTRUCT* create = reinterpret_cast<CREATESTRUCT*>(lparam);
-        SetWindowLongPtr(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(create->lpCreateParams));
+        CREATESTRUCT* pCreateStruct = reinterpret_cast<CREATESTRUCT*>(lparam);
+        SetWindowLongPtr(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(pCreateStruct->lpCreateParams));
         return 0;
     }
     case WM_SIZE:
-        if (window && window->get_dx11_core())
+        if (pWindow && pWindow->get_dx11_core())
         {
             UINT width = LOWORD(lparam);
             UINT height = HIWORD(lparam);
-            window->get_dx11_core()->resize(width, height);
+            pWindow->get_dx11_core()->resize(width, height);
         }
         return 0;
     case WM_DESTROY:
         PostQuitMessage(0);
         return 0;
+    case WM_INPUT:
+        pWindow->get_input()->handle_raw_input(lparam);
+        return 0;
     }
+
     return DefWindowProc(hwnd, msg, wparam, lparam);
 }
 
-Window::Window(int width, int height, const char* title)
+App::App(int width, int height, const char* title)
     : m_width(width)
     , m_height(height)
     , m_title(title)
@@ -67,17 +77,21 @@ Window::Window(int width, int height, const char* title)
 
     ShowWindow((HWND)m_hwnd, SW_SHOW);
 
-    // Create DX11 core after window creation
+    m_pInput = new Input();
+
+    m_pInput->initialize(m_hwnd);
+
     m_pDx11Core = new D3D11Core(m_hwnd, width, height);
 }
 
-Window::~Window()
+App::~App()
 {
-    delete m_pDx11Core;
-    if (m_hwnd) DestroyWindow((HWND)m_hwnd);
+	delete (m_pDx11Core);
+	delete m_pInput;
+    DestroyWindow((HWND)m_hwnd);
 }
 
-bool Window::process_messages()
+bool App::process_messages()
 {
     MSG msg = {};
     while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
@@ -91,7 +105,7 @@ bool Window::process_messages()
     return true;
 }
 
-void Window::present()
+void App::present()
 {
     // Present the frame
     m_pDx11Core->render_frame();

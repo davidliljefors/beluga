@@ -2,9 +2,14 @@
 #include "Camera.h"
 #include "TriangleRenderer.h"
 
-#include <stdexcept>
+
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+
 #include <d3d11.h>
 #include <dxgi1_6.h>
+
+#include <cstdio>
 
 #pragma comment(lib, "d3d11.lib")
 #pragma comment(lib, "dxgi.lib")
@@ -28,17 +33,15 @@ D3D11Core::D3D11Core(void* hwnd, int width, int height)
     );
 
 #ifdef _DEBUG
-    ID3D11Debug* pDebug = nullptr;
     ID3D11InfoQueue* pInfoQueue = nullptr;
 
-    CHECK_DX(m_pDevice->QueryInterface, __uuidof(ID3D11Debug), (void**)&pDebug);
-    CHECK_DX(pDebug->QueryInterface, __uuidof(ID3D11InfoQueue), (void**)&pInfoQueue);
+    CHECK_DX(m_pDevice->QueryInterface, __uuidof(ID3D11Debug), (void**)&m_pDebug);
+    CHECK_DX(m_pDebug->QueryInterface, __uuidof(ID3D11InfoQueue), (void**)&pInfoQueue);
     CHECK_DX(pInfoQueue->SetBreakOnSeverity, D3D11_MESSAGE_SEVERITY_CORRUPTION, true);
     CHECK_DX(pInfoQueue->SetBreakOnSeverity, D3D11_MESSAGE_SEVERITY_ERROR, true);
     CHECK_DX(pInfoQueue->SetBreakOnSeverity, D3D11_MESSAGE_SEVERITY_WARNING, true);
     
     pInfoQueue->Release();
-    pDebug->Release();
     puts("D3D11 debug layer enabled successfully");
 	
 #endif
@@ -63,12 +66,21 @@ D3D11Core::D3D11Core(void* hwnd, int width, int height)
     m_pCamera = new Camera();
 }
 
-D3D11Core::~D3D11Core() {
+D3D11Core::~D3D11Core() 
+{
+    m_pTriangleRenderer->shutdown();
+
     if (m_pDeviceContext) m_pDeviceContext->Release();
     if (m_pSwapChain) m_pSwapChain->Release();
-    if (m_pDevice) m_pDevice->Release();
     if (m_pFactory) m_pFactory->Release();
     if (m_pRenderTargetView) m_pRenderTargetView->Release();
+    if (m_pDevice) m_pDevice->Release();
+
+    if(m_pDebug) 
+    {
+        m_pDebug->ReportLiveDeviceObjects(D3D11_RLDO_DETAIL);
+        m_pDebug->Release();
+    }
 }
 
 void D3D11Core::render_frame()

@@ -44,6 +44,7 @@ private:
     struct ID3D11CommandQueue* m_commandQueue = nullptr;
     struct IDXGISwapChain* m_pSwapChain = nullptr;
     struct ID3D11DeviceContext* m_pDeviceContext = nullptr;
+    struct ID3D11Debug* m_pDebug = nullptr;
 
     u32 m_currentBackBuffer = 0;
 

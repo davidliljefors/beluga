@@ -1,22 +1,26 @@
 #pragma once
 
-#include "dx11.h"
+#include "CommonTypes.h"
 
-class Window {
+class D3D11Core;
+class Input;
+
+class App {
 public:
-    Window(int width, int height, const char* title);
-    ~Window();
+    App(int width, int height, const char* title);
+    ~App();
 
     bool process_messages();
     void present();
     D3D11Core* get_dx11_core() const { return m_pDx11Core; }
-    //HWND GetHandle() const { return m_hwnd; }
+    void* get_hwnd() const { return m_hwnd; }
+    Input* get_input() const { return m_pInput; }
 
 private:
-    
     void* m_hwnd = nullptr;
     int m_width;
     int m_height;
     const char*m_title;
     D3D11Core* m_pDx11Core;
+    Input* m_pInput;
 };
