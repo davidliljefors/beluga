@@ -1,8 +1,8 @@
-#include "Camera.h"
+#include "FreeCamera.h"
 
 #include <cmath>
 
-Camera::Camera(f32 fov_degrees, f32 aspect_ratio, f32 near_plane, f32 far_plane)
+FreeCamera::FreeCamera(f32 fov_degrees, f32 aspect_ratio, f32 near_plane, f32 far_plane)
     : m_position(0.0f, 0.0f, 0.0f)
     , m_forward(0.0f, 0.0f, 1.0f)
     , m_up(0.0f, 1.0f, 0.0f)
@@ -15,17 +15,17 @@ Camera::Camera(f32 fov_degrees, f32 aspect_ratio, f32 near_plane, f32 far_plane)
     update_projection_matrix();
 }
 
-void Camera::set_position(const Vec3& position) {
+void FreeCamera::set_position(const Vec3& position) {
     m_position = position;
     update_view_matrix();
 }
 
-void Camera::look_at(const Vec3& target) {
+void FreeCamera::look_at(const Vec3& target) {
     m_forward = normalize(target - m_position);
     update_view_matrix();
 }
 
-void Camera::set_perspective(
+void FreeCamera::set_perspective(
     f32 fov_degrees, 
     f32 aspect_ratio,
 	f32 near_plane, 
@@ -38,11 +38,15 @@ void Camera::set_perspective(
     update_projection_matrix();
 }
 
-void Camera::update_view_matrix() {
+void FreeCamera::update(f32 dt)
+{
+
+}
+
+void FreeCamera::update_view_matrix() {
     Vec3 right = normalize(cross(m_up, m_forward));
     Vec3 up = cross(m_forward, right);
     
-    // Create view matrix (simplified look-at matrix calculation)
     m_view_matrix = Mat4x4(
         right.x,           right.y,           right.z,     -dot(right, m_position),
         up.x,              up.y,              up.z,        -dot(up, m_position),
@@ -51,7 +55,7 @@ void Camera::update_view_matrix() {
     );
 }
 
-void Camera::update_projection_matrix() {
+void FreeCamera::update_projection_matrix() {
     f32 tan_half_fov = tan(m_fov * 0.5f * 3.14159f / 180.0f);
     f32 f = 1.0f / tan_half_fov;
     

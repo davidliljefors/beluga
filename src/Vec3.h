@@ -1,5 +1,5 @@
 #pragma once
-#include "CommonTypes.h"
+#include "Core.h"
 
 struct Vec3 {
     f32 x, y, z;

@@ -7,10 +7,14 @@
 #define NOMINMAX
 #include <Windows.h>
 
-#include "Camera.h"
-#include "TriangleRenderer.h"
+#include "FreeCamera.h"
 #include "Input.h"
 #include "dx11.h"
+
+struct DeltaTime
+{
+	
+};
 
 int main(int argc, char** argv)
 {
@@ -38,22 +42,19 @@ int main(int argc, char** argv)
         }
     }
 
-    Camera cam;
+    FreeCamera cam;
     cam.set_perspective(60, 800.0f / 600.0f, 0.1f, 100.0f);
-    TriangleRenderer* pTriangleRenderer = new TriangleRenderer();
 
-    App window(800, 600, "Beluga");
+    App app(800, 600, "Beluga");
 
-    window.get_dx11_core()->create_triangle_renderer();
-
-    while (window.process_messages())
+    while (app.process_messages())
     {
         if(Input::get_key(Key::Space).bHeld)
         {
             puts("Space pressed");
         }
         
-        window.present();
+        app.update();
         Sleep(5);
     }
     return 0;

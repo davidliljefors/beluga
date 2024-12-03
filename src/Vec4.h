@@ -1,5 +1,5 @@
 #pragma once
-#include "CommonTypes.h"
+#include "Core.h"
 #include "Vec3.h"
 
 struct Vec4 {

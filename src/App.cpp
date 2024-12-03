@@ -2,6 +2,7 @@
 
 #include "Input.h"
 
+#include "RenderScene.h"
 #include "dx11.h"
 
 #include <cstdio>
@@ -105,9 +106,10 @@ bool App::process_messages()
     return true;
 }
 
-void App::present()
+void App::update()
 {
-    // Present the frame
-    m_pDx11Core->render_frame();
+    m_pDx11Core->pre_render();
+    m_pDx11Core->draw();
+    m_pDx11Core->present();
 }
 

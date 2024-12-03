@@ -1,5 +1,5 @@
 #pragma once
-#include "CommonTypes.h"
+#include "Core.h"
 
 
 enum class Key : u8;

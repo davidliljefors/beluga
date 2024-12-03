@@ -7,7 +7,7 @@
 
 Input* g_input = nullptr;
 
-Key vk_to_keycode(uint8_t vk)
+Key vk_to_keycode(u8 vk)
 {
     // Direct mappings for letters and numbers
     if ((vk >= 'A' && vk <= 'Z') || (vk >= '0' && vk <= '9'))
